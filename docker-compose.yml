@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_NAME: Personal Expenses API
+      DEBUG: "false"
+      API_PREFIX: /api/v1
+      CORS_ORIGINS: "*"
+      PERSISTENCE_PROVIDER: memory
+      LLM_PROVIDER: openai_stub
