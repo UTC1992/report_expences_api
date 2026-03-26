@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from app.modules.expenses.application.services.deduplication_service import DeduplicationService
 from app.modules.expenses.application.services.expense_validation_service import ExpenseValidationService
@@ -17,8 +17,6 @@ from app.modules.expenses.domain.repositories import (
 
 @dataclass(frozen=True, slots=True)
 class ImportBatchInput:
-    """Structured payload assembled from the API layer (already parsed JSON)."""
-
     invoices: list[InvoiceImportItem]
 
 
@@ -82,7 +80,7 @@ class ImportExpensesBatchUseCase:
         self._dedup = deduplication_service
         self._validation = validation_service
 
-    def execute(self, batch: ImportBatchInput) -> ImportBatchResult:
+    async def execute(self, batch: ImportBatchInput) -> ImportBatchResult:
         invoices_saved = 0
         invoices_skipped = 0
         expenses_saved = 0
@@ -120,12 +118,12 @@ class ImportExpensesBatchUseCase:
             ]
             self._validation.validate_invoice_details(detail_entities)
 
-            if self._dedup.is_duplicate_invoice(invoice):
+            if await self._dedup.is_duplicate_invoice(invoice):
                 invoices_skipped += 1
                 continue
 
-            saved_invoice = self._invoices.save(invoice)
-            self._details.save_many(saved_invoice.id, detail_entities)
+            saved_invoice = await self._invoices.save(invoice)
+            await self._details.save_many(saved_invoice.id, detail_entities)
 
             for expense_item in item.expenses:
                 self._validation.validate_expense_fields(
@@ -146,10 +144,10 @@ class ImportExpensesBatchUseCase:
                     linked_invoice_id=saved_invoice.id,
                     created_at=datetime.now(UTC),
                 )
-                if self._dedup.is_duplicate_expense(expense):
+                if await self._dedup.is_duplicate_expense(expense):
                     expenses_skipped += 1
                     continue
-                self._expenses.save(expense)
+                await self._expenses.save(expense)
                 expenses_saved += 1
 
             invoices_saved += 1

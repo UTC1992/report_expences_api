@@ -6,8 +6,8 @@ from uuid import uuid4
 
 from app.modules.expenses.application.services.deduplication_service import DeduplicationService
 from app.modules.expenses.application.services.expense_validation_service import ExpenseValidationService
+from app.modules.expenses.application.services.llm_orchestration_service import LlmOrchestrationService
 from app.modules.expenses.domain.entities import Expense
-from app.modules.expenses.domain.llm_provider import LlmProvider
 from app.modules.expenses.domain.repositories import ExpenseRepository
 
 
@@ -16,27 +16,39 @@ class ProcessChatExpenseResult:
     saved: bool
     duplicate: bool
     expense_id: str | None
+    expense: Expense | None
 
 
 class ProcessChatExpenseUseCase:
     def __init__(
         self,
         *,
-        llm_provider: LlmProvider,
+        llm_orchestration: LlmOrchestrationService,
         expense_repository: ExpenseRepository,
         deduplication_service: DeduplicationService,
         validation_service: ExpenseValidationService,
     ) -> None:
-        self._llm = llm_provider
+        self._llm = llm_orchestration
         self._expenses = expense_repository
         self._dedup = deduplication_service
         self._validation = validation_service
 
-    async def execute(self, text: str) -> ProcessChatExpenseResult:
+    async def execute(
+        self,
+        text: str,
+        *,
+        provider: str,
+        api_key: str | None,
+    ) -> ProcessChatExpenseResult:
         self._validation.require_non_empty(text, "text")
+        self._validation.require_non_empty(provider, "provider")
         stripped = text.strip()
 
-        draft = await self._llm.parse_expense_from_text(stripped)
+        draft = await self._llm.parse_chat_expense(
+            stripped,
+            provider=provider,
+            api_key=api_key,
+        )
         self._validation.validate_expense_fields(
             amount=draft.amount,
             category=draft.category,
@@ -57,8 +69,18 @@ class ProcessChatExpenseUseCase:
             created_at=datetime.now(UTC),
         )
 
-        if self._dedup.is_duplicate_expense(expense):
-            return ProcessChatExpenseResult(saved=False, duplicate=True, expense_id=None)
+        if await self._dedup.is_duplicate_expense(expense):
+            return ProcessChatExpenseResult(
+                saved=False,
+                duplicate=True,
+                expense_id=None,
+                expense=None,
+            )
 
-        saved = self._expenses.save(expense)
-        return ProcessChatExpenseResult(saved=True, duplicate=False, expense_id=str(saved.id))
+        saved = await self._expenses.save(expense)
+        return ProcessChatExpenseResult(
+            saved=True,
+            duplicate=False,
+            expense_id=str(saved.id),
+            expense=saved,
+        )

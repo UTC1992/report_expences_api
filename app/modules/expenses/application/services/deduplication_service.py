@@ -17,23 +17,23 @@ class DeduplicationService:
         self._expenses = expense_repository
         self._invoices = invoice_repository
 
-    def is_duplicate_invoice(self, candidate: Invoice) -> bool:
+    async def is_duplicate_invoice(self, candidate: Invoice) -> bool:
         if candidate.access_key:
-            existing = self._invoices.find_by_access_key(candidate.access_key.strip())
+            existing = await self._invoices.find_by_access_key(candidate.access_key.strip())
             if existing is not None:
                 return True
         if candidate.external_id:
-            existing = self._invoices.find_by_external_id(candidate.external_id.strip())
+            existing = await self._invoices.find_by_external_id(candidate.external_id.strip())
             if existing is not None:
                 return True
         if candidate.invoice_number and candidate.supplier_ruc:
-            existing = self._invoices.find_by_invoice_number_and_ruc(
+            existing = await self._invoices.find_by_invoice_number_and_ruc(
                 invoice_number=candidate.invoice_number.strip(),
                 supplier_ruc=candidate.supplier_ruc.strip(),
             )
             if existing is not None:
                 return True
-        composite = self._invoices.find_duplicate_invoice(
+        composite = await self._invoices.find_duplicate_invoice(
             issue_date=candidate.issue_date,
             supplier_name=candidate.supplier_name,
             total=normalize_money(candidate.total),
@@ -41,8 +41,8 @@ class DeduplicationService:
         )
         return composite is not None
 
-    def is_duplicate_expense(self, candidate: Expense) -> bool:
-        existing = self._expenses.find_duplicate_expense(
+    async def is_duplicate_expense(self, candidate: Expense) -> bool:
+        existing = await self._expenses.find_duplicate_expense(
             amount=normalize_money(candidate.amount),
             expense_date=candidate.expense_date,
             provider_name=normalize_text(candidate.provider_name),

@@ -1,7 +1,7 @@
 [project]
 name = "report-expences-api"
-version = "0.1.0"
-description = "Expenses reports API (Clean Architecture)"
+version = "0.2.0"
+description = "Personal expenses API (Clean Architecture)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0,<1.0.0",
@@ -9,6 +9,11 @@ dependencies = [
     "pydantic>=2.9.0,<3.0.0",
     "pydantic-settings>=2.6.0,<3.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
+    "sqlalchemy[asyncio]>=2.0.36,<3.0.0",
+    "asyncpg>=0.30.0,<1.0.0",
+    "alembic>=1.14.0,<2.0.0",
+    "psycopg[binary]>=3.2.0,<4.0.0",
+    "openai>=1.59.0,<2.0.0",
 ]
 
 [tool.ruff]

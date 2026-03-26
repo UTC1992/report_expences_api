@@ -16,8 +16,13 @@ class ParsedExpenseDraft:
 
 
 class LlmProvider(Protocol):
-    """Port for chat-based expense extraction (OpenAI first; swap implementation in infra)."""
+    """Port for chat-based expense extraction (OpenAI first; add Gemini/Anthropic later)."""
 
-    async def parse_expense_from_text(self, text: str) -> ParsedExpenseDraft:
-        """Parse free-text into a draft expense. Implementations may call external APIs."""
-        ...
+    async def parse_expense_from_text(
+        self,
+        text: str,
+        *,
+        provider: str,
+        api_key: str | None,
+    ) -> ParsedExpenseDraft:
+        """Parse free-text into a draft expense. Implementations call external APIs."""

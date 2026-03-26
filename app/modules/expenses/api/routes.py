@@ -38,11 +38,17 @@ async def process_expense_from_chat(
     body: ChatProcessExpenseRequest,
     use_case: Annotated[ProcessChatExpenseUseCase, Depends(get_process_chat_expense_use_case)],
 ) -> ChatProcessExpenseResponse:
-    result = await use_case.execute(body.text)
+    result = await use_case.execute(
+        body.text,
+        provider=body.provider,
+        api_key=body.api_key,
+    )
+    expense_payload = expense_to_response(result.expense) if result.expense else None
     return ChatProcessExpenseResponse(
         saved=result.saved,
         duplicate=result.duplicate,
         expense_id=result.expense_id,
+        expense=expense_payload,
     )
 
 
@@ -50,47 +56,47 @@ expenses_router = APIRouter(tags=["expenses"])
 
 
 @expenses_router.get("", response_model=ExpenseListResponse)
-def list_expenses(
+async def list_expenses(
     use_case: Annotated[ListExpensesUseCase, Depends(get_list_expenses_use_case)],
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
     category: str | None = Query(default=None),
     provider_name: str | None = Query(default=None),
-    search_text: str | None = Query(default=None),
-    date_from: date | None = Query(default=None),
-    date_to: date | None = Query(default=None),
     min_amount: Decimal | None = Query(default=None),
     max_amount: Decimal | None = Query(default=None),
+    search: str | None = Query(default=None),
 ) -> ExpenseListResponse:
     filter_ = ExpenseListFilter(
+        date_from=start_date,
+        date_to=end_date,
         category=category,
         provider_name=provider_name,
-        search_text=search_text,
-        date_from=date_from,
-        date_to=date_to,
         min_amount=min_amount,
         max_amount=max_amount,
+        search_text=search,
     )
     has_any = any(
         [
+            start_date is not None,
+            end_date is not None,
             category is not None,
             provider_name is not None,
-            search_text is not None,
-            date_from is not None,
-            date_to is not None,
             min_amount is not None,
             max_amount is not None,
+            search is not None,
         ]
     )
-    rows = use_case.execute(filter_ if has_any else None)
+    rows = await use_case.execute(filter_ if has_any else None)
     return ExpenseListResponse(items=[expense_to_response(e) for e in rows], total=len(rows))
 
 
 @expenses_router.post("/import", response_model=ImportBatchResponse)
-def import_expenses_batch(
+async def import_expenses_batch(
     body: ImportBatchRequest,
     use_case: Annotated[ImportExpensesBatchUseCase, Depends(get_import_batch_use_case)],
 ) -> ImportBatchResponse:
     batch = _map_import_request(body)
-    result = use_case.execute(batch)
+    result = await use_case.execute(batch)
     return ImportBatchResponse(
         invoices_saved=result.invoices_saved,
         invoices_skipped_duplicate=result.invoices_skipped_duplicate,

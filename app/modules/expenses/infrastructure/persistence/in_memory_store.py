@@ -22,11 +22,11 @@ class InMemoryExpenseRepository(ExpenseRepository):
     def __init__(self, store: InMemoryPersistence) -> None:
         self._store = store
 
-    def save(self, expense: Expense) -> Expense:
+    async def save(self, expense: Expense) -> Expense:
         self._store.expenses[expense.id] = expense
         return expense
 
-    def list_filtered(self, filter_: ExpenseListFilter) -> list[Expense]:
+    async def list_filtered(self, filter_: ExpenseListFilter) -> list[Expense]:
         rows = list(self._store.expenses.values())
         if filter_.date_from is not None:
             rows = [e for e in rows if e.expense_date >= filter_.date_from]
@@ -51,7 +51,7 @@ class InMemoryExpenseRepository(ExpenseRepository):
             ]
         return sorted(rows, key=lambda e: e.expense_date, reverse=True)
 
-    def find_duplicate_expense(
+    async def find_duplicate_expense(
         self,
         *,
         amount: Decimal,
@@ -76,28 +76,28 @@ class InMemoryInvoiceRepository(InvoiceRepository):
     def __init__(self, store: InMemoryPersistence) -> None:
         self._store = store
 
-    def save(self, invoice: Invoice) -> Invoice:
+    async def save(self, invoice: Invoice) -> Invoice:
         self._store.invoices[invoice.id] = invoice
         return invoice
 
-    def get_by_id(self, invoice_id: UUID) -> Invoice | None:
+    async def get_by_id(self, invoice_id: UUID) -> Invoice | None:
         return self._store.invoices.get(invoice_id)
 
-    def find_by_access_key(self, access_key: str) -> Invoice | None:
+    async def find_by_access_key(self, access_key: str) -> Invoice | None:
         key = access_key.strip()
         for inv in self._store.invoices.values():
             if inv.access_key and inv.access_key.strip() == key:
                 return inv
         return None
 
-    def find_by_external_id(self, external_id: str) -> Invoice | None:
+    async def find_by_external_id(self, external_id: str) -> Invoice | None:
         key = external_id.strip()
         for inv in self._store.invoices.values():
             if inv.external_id and inv.external_id.strip() == key:
                 return inv
         return None
 
-    def find_by_invoice_number_and_ruc(
+    async def find_by_invoice_number_and_ruc(
         self,
         *,
         invoice_number: str,
@@ -115,7 +115,7 @@ class InMemoryInvoiceRepository(InvoiceRepository):
                 return inv
         return None
 
-    def find_duplicate_invoice(
+    async def find_duplicate_invoice(
         self,
         *,
         issue_date: date,
@@ -144,7 +144,7 @@ class InMemoryInvoiceDetailRepository(InvoiceDetailRepository):
     def __init__(self, store: InMemoryPersistence) -> None:
         self._store = store
 
-    def save_many(self, invoice_id: UUID, details: list[InvoiceDetail]) -> list[InvoiceDetail]:
+    async def save_many(self, invoice_id: UUID, details: list[InvoiceDetail]) -> list[InvoiceDetail]:
         stored = list(details)
         self._store.invoice_details[invoice_id] = stored
         return stored

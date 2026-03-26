@@ -11,12 +11,27 @@ from app.modules.expenses.domain.entities import Expense
 
 class ChatProcessExpenseRequest(BaseModel):
     text: str = Field(min_length=1)
+    provider: str = Field(min_length=1, description="e.g. openai")
+    api_key: str | None = Field(default=None, description="Optional; falls back to server OPENAI_API_KEY")
+
+
+class ExpenseResponse(BaseModel):
+    id: UUID
+    amount: Decimal
+    category: str
+    description: str
+    provider_name: str
+    expense_date: date
+    raw_text: str | None
+    linked_invoice_id: UUID | None
+    created_at: datetime
 
 
 class ChatProcessExpenseResponse(BaseModel):
     saved: bool
     duplicate: bool
     expense_id: str | None = None
+    expense: ExpenseResponse | None = None
 
 
 class InvoiceDetailImportBody(BaseModel):
@@ -61,18 +76,6 @@ class ImportBatchResponse(BaseModel):
     invoices_skipped_duplicate: int
     expenses_saved: int
     expenses_skipped_duplicate: int
-
-
-class ExpenseResponse(BaseModel):
-    id: UUID
-    amount: Decimal
-    category: str
-    description: str
-    provider_name: str
-    expense_date: date
-    raw_text: str | None
-    linked_invoice_id: UUID | None
-    created_at: datetime
 
 
 class ExpenseListResponse(BaseModel):

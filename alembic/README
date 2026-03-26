@@ -1,0 +1,3 @@
+After filling `.env` with PostgreSQL settings:
+  alembic revision --autogenerate -m "initial_expenses_schema"
+  alembic upgrade head

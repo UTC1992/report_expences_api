@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,13 +17,21 @@ from app.core.problem_details import (
     TYPE_VALIDATION,
     problem_json_response,
 )
+from app.core.database import dispose_engine
 from app.modules.expenses.api.routes import chat_router, expenses_router
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    yield
+    if get_settings().persistence_provider == "postgres":
+        await dispose_engine()
 
 
 def create_app() -> FastAPI:
     configure_logging()
     settings = get_settings()
-    application = FastAPI(title=settings.app_name, debug=settings.debug)
+    application = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=_lifespan)
 
     @application.exception_handler(NotFoundError)
     async def _not_found(request: Request, exc: NotFoundError) -> JSONResponse:
