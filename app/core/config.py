@@ -27,6 +27,7 @@ class Settings(BaseSettings):
         description="openai_stub | openai (future)",
     )
     openai_api_key: str | None = Field(default=None, description="Optional; required for real OpenAI calls")
+    log_level: str = Field(default="INFO", description="DEBUG | INFO | WARNING | ERROR")
 
     @property
     def cors_origins_list(self) -> list[str]:
