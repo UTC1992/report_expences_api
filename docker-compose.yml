@@ -1,8 +1,29 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: expenses_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d expenses_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   api:
     build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - path: .env
         required: false
@@ -12,9 +33,13 @@ services:
       API_PREFIX: /api/v1
       CORS_ORIGINS: "*"
       PERSISTENCE_PROVIDER: postgres
-      DB_HOST: localhost
+      DB_HOST: db
       DB_PORT: "5432"
       DB_NAME: expenses_db
       DB_USER: postgres
       DB_PASSWORD: postgres
       OPENAI_MODEL: gpt-4o-mini
+      DB_WAIT_TIMEOUT: "90"
+
+volumes:
+  postgres_data:
