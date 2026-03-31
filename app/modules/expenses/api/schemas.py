@@ -4,18 +4,30 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.expenses.domain.entities import Expense
 
 
-class ChatProcessExpenseRequest(BaseModel):
+def to_camel(value: str) -> str:
+    first, *rest = value.split("_")
+    return first + "".join(part.capitalize() for part in rest)
+
+
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+
+class ChatProcessExpenseRequest(CamelModel):
     text: str = Field(min_length=1)
     provider: str = Field(min_length=1, description="e.g. openai")
     api_key: str | None = Field(default=None, description="Optional; falls back to server OPENAI_API_KEY")
 
 
-class ExpenseResponse(BaseModel):
+class ExpenseResponse(CamelModel):
     id: UUID
     amount: Decimal
     category: str
@@ -27,14 +39,14 @@ class ExpenseResponse(BaseModel):
     created_at: datetime
 
 
-class ChatProcessExpenseResponse(BaseModel):
+class ChatProcessExpenseResponse(CamelModel):
     saved: bool
     duplicate: bool
     expense_id: str | None = None
     expense: ExpenseResponse | None = None
 
 
-class InvoiceDetailImportBody(BaseModel):
+class InvoiceDetailImportBody(CamelModel):
     item_name: str
     quantity: Decimal
     unit_price: Decimal
@@ -44,7 +56,7 @@ class InvoiceDetailImportBody(BaseModel):
     total_line: Decimal
 
 
-class ExpenseImportBody(BaseModel):
+class ExpenseImportBody(CamelModel):
     amount: Decimal
     category: str
     description: str
@@ -53,7 +65,7 @@ class ExpenseImportBody(BaseModel):
     raw_text: str | None = None
 
 
-class InvoiceImportBody(BaseModel):
+class InvoiceImportBody(CamelModel):
     access_key: str | None = None
     external_id: str | None = None
     invoice_number: str | None = None
@@ -67,18 +79,18 @@ class InvoiceImportBody(BaseModel):
     expenses: list[ExpenseImportBody] = Field(default_factory=list)
 
 
-class ImportBatchRequest(BaseModel):
+class ImportBatchRequest(CamelModel):
     invoices: list[InvoiceImportBody]
 
 
-class ImportBatchResponse(BaseModel):
+class ImportBatchResponse(CamelModel):
     invoices_saved: int
     invoices_skipped_duplicate: int
     expenses_saved: int
     expenses_skipped_duplicate: int
 
 
-class ExpenseListResponse(BaseModel):
+class ExpenseListResponse(CamelModel):
     items: list[ExpenseResponse]
     total: int
 
