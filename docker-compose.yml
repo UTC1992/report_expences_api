@@ -28,6 +28,9 @@ services:
       - path: .env
         required: false
     environment:
+      # Override .env: if DATABASE_URL is set (e.g. Railway), the app would use it
+      # instead of DB_* and would not resolve the compose service hostname "db".
+      DATABASE_URL: ""
       APP_NAME: Personal Expenses API
       DEBUG: "false"
       API_PREFIX: /api/v1
