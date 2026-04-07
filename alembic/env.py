@@ -27,7 +27,7 @@ target_metadata = Base.metadata
 def get_sync_url() -> str:
     url = get_settings().resolve_sync_database_url()
     if not url:
-        raise RuntimeError("Configure database settings in .env before running Alembic.")
+        raise RuntimeError("Set DATABASE_URL in .env before running Alembic.")
     return url
 
 

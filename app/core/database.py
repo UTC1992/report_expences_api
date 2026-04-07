@@ -14,7 +14,7 @@ def _get_engine(settings: Settings) -> AsyncEngine:
     global _engine
     url = settings.resolve_async_database_url()
     if not url:
-        raise RuntimeError("PostgreSQL URL is not configured. Set database_url or db_* fields.")
+        raise RuntimeError("PostgreSQL URL is not configured. Set DATABASE_URL.")
     if _engine is None:
         _engine = create_async_engine(url, echo=settings.debug, pool_pre_ping=True)
     return _engine

@@ -9,8 +9,7 @@
 ## Env
 
 - **`.env`** is gitignored; copy from **`.env.example`**
-- **Production:** set **`DATABASE_URL`** only (Railway/host env). Prefer **`postgresql+asyncpg://...`**
-- **Local dev:** optional `DB_*` when `DATABASE_URL` is empty
+- **`DATABASE_URL`** — única variable de conexión (Railway, local, Docker). Prefer **`postgresql+asyncpg://...`**
 - **`PERSISTENCE_PROVIDER`:** `memory` | `postgres` — choose storage backend; `entrypoint.sh` runs Alembic only when `postgres`
 
 ## Run
@@ -46,4 +45,4 @@ alembic revision --autogenerate -m "message"
 alembic upgrade head
 ```
 
-Requires `DATABASE_URL` or complete `DB_*` / sync URL for Alembic.
+Requires `DATABASE_URL` for Alembic (sync URL se deriva en código).

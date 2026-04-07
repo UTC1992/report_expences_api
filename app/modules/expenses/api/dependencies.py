@@ -35,7 +35,7 @@ async def get_db_session(
         yield None
         return
     if not settings.resolve_async_database_url():
-        raise RuntimeError("PostgreSQL is selected but database connection settings are incomplete.")
+        raise RuntimeError("PostgreSQL is selected but DATABASE_URL is not set.")
     factory = get_session_factory(settings)
     async with factory() as session:
         try:

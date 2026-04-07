@@ -4,20 +4,57 @@ set -eu
 echo "Starting API entrypoint..."
 
 if [ "${PERSISTENCE_PROVIDER:-memory}" = "postgres" ]; then
-  DB_HOST_CHECK="${DB_HOST:-db}"
-  DB_PORT_CHECK="${DB_PORT:-5432}"
   DB_WAIT_TIMEOUT="${DB_WAIT_TIMEOUT:-60}"
 
-  echo "Waiting for PostgreSQL at ${DB_HOST_CHECK}:${DB_PORT_CHECK} (timeout: ${DB_WAIT_TIMEOUT}s)..."
+  echo "Waiting for PostgreSQL (timeout: ${DB_WAIT_TIMEOUT}s)..."
   python - <<'PY'
 import os
 import socket
 import sys
 import time
+from urllib.parse import urlparse
 
-host = os.getenv("DB_HOST", "db")
-port = int(os.getenv("DB_PORT", "5432"))
 timeout = int(os.getenv("DB_WAIT_TIMEOUT", "60"))
+
+
+def tcp_target_from_database_url(url: str) -> tuple[str, int] | None:
+    """Host and port for TCP wait, parsed from DATABASE_URL."""
+    raw = url.strip()
+    if not raw:
+        return None
+    # Normalize schemes urlparse understands
+    if raw.startswith("postgresql+asyncpg://"):
+        raw = "postgresql://" + raw.removeprefix("postgresql+asyncpg://")
+    elif raw.startswith("postgresql+psycopg://"):
+        raw = "postgresql://" + raw.removeprefix("postgresql+psycopg://")
+    elif raw.startswith("postgres://"):
+        raw = "postgresql://" + raw.removeprefix("postgres://")
+    if not raw.startswith("postgresql://"):
+        return None
+    parsed = urlparse(raw)
+    if not parsed.hostname:
+        return None
+    port = parsed.port or 5432
+    return (parsed.hostname, port)
+
+
+database_url = os.getenv("DATABASE_URL", "").strip()
+if not database_url:
+    print(
+        "ERROR: DATABASE_URL is required when PERSISTENCE_PROVIDER=postgres "
+        "(single URL for app, migrations, and this wait).",
+        flush=True,
+    )
+    sys.exit(1)
+parsed = tcp_target_from_database_url(database_url)
+if not parsed:
+    print(
+        f"ERROR: DATABASE_URL is not a parseable postgres URL: {database_url!r}",
+        flush=True,
+    )
+    sys.exit(1)
+host, port = parsed
+print(f"TCP wait target from DATABASE_URL: {host}:{port}", flush=True)
 sock_timeout = 2
 poll_interval = 1
 status_interval = 5
@@ -64,9 +101,8 @@ while True:
         if last_err is not None:
             log(f"Last connection error: {last_err!r} ({last_err})")
         log(
-            "Hint: is Postgres running? On Docker Compose, ensure the api service "
-            "depends_on db with a healthcheck; on Railway, DB_HOST must match your "
-            "database service (often from DATABASE_URL, not 'db')."
+            "Hint: ensure Postgres is up and DATABASE_URL points to the right host:port "
+            "(Compose: hostname is often the db service name)."
         )
         sys.exit(1)
     if attempt == 1:
